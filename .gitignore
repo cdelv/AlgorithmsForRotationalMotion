@@ -1,3 +1,8 @@
 .ipynb_checkpoints
-.svg
-.png
+*.svg
+*.png
+*.gif
+*.pdf
+*.eps
+paraview*
+*.log

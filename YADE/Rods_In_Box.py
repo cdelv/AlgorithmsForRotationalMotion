@@ -12,14 +12,16 @@ import csv
 O.trackEnergy=True
 
 # PWaveTimeStep step fraction
-DT = 0.1
+DT = 2.0
+samples = 500
 
 # Integration Method
-Type = {'Omelyan':False, 'YADE':True}
-integrationType='Omelyan'
+#integrationType='Fincham'
+integrationType='Omelyan98'
+integrationType='Carlos_2023'
 
 # Material
-matID=O.materials.append(FrictMat(young=1.0e9, poisson=0.3, density=2500.0, frictionAngle=0.0, label='spheresMat'))
+matID=O.materials.append(FrictMat(young=1.0e9, poisson=0.1, density=2500.0, frictionAngle=0.0, label='spheresMat'))
 
 # Facet box
 id1 = O.bodies.append(geom.facetBox((Vector3(0.5,0.5,0.5)), (Vector3(1.0, 1.0, 1.0)), material=O.materials['spheresMat']))
@@ -59,7 +61,7 @@ for b in O.bodies:
         phi = random.random()
         vv = Vector3(np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta))
         b.state.vel=Vel*vv
-        b.state.angVel=0.5*vv
+        b.state.angVel=0.5*Vel*vv
 
 for b in O.bodies:
     if isinstance(b.shape,Clump):
@@ -77,6 +79,15 @@ for b in O.bodies:
             row = list(map(lambda t: ("%.16f" % t), data)) # 16 decimal places
             writer.writerow(row)
 
+# Set time step
+O.stopAtTime = 250.0
+O.dt = DT*PWaveTimeStep()
+print('dt = ', O.dt)
+
+
+steps = int(O.stopAtTime/O.dt)
+vis_steps = int(steps/samples)
+
 # Engines
 O.engines=[
         ForceResetter(),
@@ -84,28 +95,27 @@ O.engines=[
         InteractionLoop(
             [Ig2_Sphere_Sphere_ScGeom(), Ig2_Facet_Sphere_ScGeom(label='ig2')],
             [Ip2_FrictMat_FrictMat_MindlinPhys(betan=0.0, betas=0.0, label='ip2')],
-            [Law2_ScGeom_MindlinPhys_Mindlin(label='law')]
+            [Law2_ScGeom_MindlinPhys_Mindlin(label='law', calcEnergy=True)]
         ),
         NewtonIntegrator(damping=0.0, gravity=[0,0,0], label='newton', kinSplit=True,
-            exactAsphericalRot=True, Omelyan98=False, Allen89=Type[integrationType]),
-        PyRunner(command='addPlotData()', iterPeriod=200000)
+            exactAsphericalRot=True, RotAlgorithm=integrationType),
+        VTKRecorder(fileName='temp-', recorders=['all'], iterPeriod=500, dead=False),
+        PyRunner(command='addPlotData()', iterPeriod=vis_steps)
 ]
 
-# Set time step
-O.dt=DT*PWaveTimeStep()
-print('dt = ', O.dt)
-
 # Plot energies
-plot.plots={'t':('total','kinTrans','kinRot')}
+plot.plots={'t':('total', 'kinTrans', 'kinRot', 'Elastic')}
 plot.plot(subPlots=False)
 
 def addPlotData(): 
-    plot.addData(t=O.time , total=O.energy.total() , **O.energy )
+    normElastEnergy = O.engines[2].lawDispatcher.functors[0].normElastEnergy() 
+
+    plot.addData(t=O.time, total=O.energy['kinTrans'] + O.energy['kinRot'] + normElastEnergy, **O.energy, Elastic=normElastEnergy)
 
     # Save data
     with open(fileE, 'a') as f:
         writer = csv.writer(f)
-        data = [O.time, O.energy.total(), O.energy['kinTrans'], O.energy['kinRot']]   
+        data = [O.time, O.energy.total() + normElastEnergy, O.energy['kinTrans'], O.energy['kinRot']]   
         row = list(map(lambda t: ("%.16f" % t), data)) # 16 decimal places
         writer.writerow(row)
 
@@ -114,10 +124,8 @@ def addPlotData():
 # Function: Start the user interface if YADE is ran with GUI (i.e. if "yadedaily -n clumpBouncingOnFacetBox.py" is not used)
 try:
     from yade import qt
-    rndr = yade.qt.Renderer()
-    v=qt.View()
-
+#    rndr = yade.qt.Renderer()
+#    v=qt.View()
 except: pass
 
-O.stopAtTime = 250.0
 O.run()
