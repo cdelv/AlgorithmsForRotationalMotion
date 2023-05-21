@@ -6,28 +6,32 @@
 #---------------------------------------------------------------------
 from yade import plot
 import random
-random.seed(11)
+random.seed(12)
 import numpy as np
 import csv
+import os
 
-readParamsFromTable(dt=1e-7, integration_type="Carlos_2023")
+readParamsFromTable(dt=1e-5, integration_type="Carlos_2023")
 from yade.params import table 
 
 #---------------------------------------------------------------------
 BATCH = True
 t_max = 1.5          # s
 Vel = 1.0            # m/s
+samples = 250
 
 #------------------------------------------------------------------------------
 # New units for the simulation (to avoid numerical problems)
 E_new = 1e9    # new unit of pressure
-r_new = 1e-1   # new unit of lenght
-s_new = 0.01/table.dt # new unit of time
+r_new = 1e-2   # new unit of lenght
+s_new = 1.9311703796025776e6 # new unit of time (Rayleigh timestep)^-1
 
 #------------------------------------------------------------------------------
+Energy_Err = []
 def Energy_Error():
     Ef = utils.kineticEnergy() + O.engines[2].lawDispatcher.functors[0].normElastEnergy() 
-    return 100*abs(E0 - Ef)/E0
+    Energy_Err.append(100*abs(E0 - Ef)/E0)
+    return sum(Energy_Err)/len(Energy_Err)
 
 # Function to load the clumps
 def read_x_y_z_r_intoList(fileName,shift,scale):
@@ -57,7 +61,7 @@ def read_x_y_z_r_intoList(fileName,shift,scale):
 # However, this makes the time step quite small. Then, we have fancy chess pieces made of marble
 # young, density -> https://www.matweb.com/search/datasheet.aspx?matguid=a1c4c37b55e24765bcb63b4665b44f05
 # poisson -> https://www.engineeringtoolbox.com/poissons-ratio-d_1224.html
-matID=O.materials.append(FrictMat(young=50e9/E_new, poisson=0.25, density=3200*(r_new**2/(E_new*s_new**2)), frictionAngle=0.0, label='spheresMat'))
+matID=O.materials.append(FrictMat(young=60e9/E_new, poisson=0.25, density=3200*(r_new**2/(E_new*s_new**2)), frictionAngle=0.0, label='spheresMat'))
 
 #------------------------------------------------------------------------------
 # Simulation Box
@@ -76,50 +80,49 @@ unit = 1e-2/r_new # cm to m
 
 # Chess piece dimentions come from FIDE guidelines: 
 # https://www.fide.com/FIDE/handbook/Standards_of_Chess_Equipment_and_tournament_venue.pdf
-
 # Add Kings
 sp = pack.SpherePack()
-file = "Clumps_Carlos/clumps/Chess_King_100_spheres.txt"
+file = "Clumps/clumps/Chess_King_100_spheres.txt"
 King = pack.SpherePack(read_x_y_z_r_intoList(file, Vector3.Zero, 0.0861*unit)) # 9.5 cm
 sp.makeClumpCloud(corner1, corner2, [King], num=2, seed=1, periodic=False)
 sp.toSimulation(material='spheresMat')
 
 # Add Queens
 sp = pack.SpherePack()
-file = "Clumps_Carlos/clumps/Chess_Queen_100_spheres.txt"
+file = "Clumps/clumps/Chess_Queen_100_spheres.txt"
 Queen = pack.SpherePack(read_x_y_z_r_intoList(file, Vector3.Zero, 0.0825*unit)) # 8.5 cm
 sp.makeClumpCloud(corner1, corner2, [Queen], num=2, seed=2, periodic=False)
 sp.toSimulation(material='spheresMat')
 
 # Add Rooks
 sp = pack.SpherePack()
-file = "Clumps_Carlos/clumps/Chess_Rook_100_spheres.txt"
+file = "Clumps/clumps/Chess_Rook_100_spheres.txt"
 Rook = pack.SpherePack(read_x_y_z_r_intoList(file, Vector3.Zero, 0.115*unit)) # 5.5 cm
 sp.makeClumpCloud(corner1, corner2, [Rook], num=4, seed=3, periodic=False)
 sp.toSimulation(material='spheresMat')
 
 # Add Bishops
 sp = pack.SpherePack()
-file = "Clumps_Carlos/clumps/Chess_Bishop_100_spheres.txt"
+file = "Clumps/clumps/Chess_Bishop_100_spheres.txt"
 Bishop = pack.SpherePack(read_x_y_z_r_intoList(file, Vector3.Zero, 0.0424*unit)) # 7 cm
 sp.makeClumpCloud(corner1, corner2, [Bishop], num=4, seed=4, periodic=False)
 sp.toSimulation(material='spheresMat')
 
 # Add Knights
 sp = pack.SpherePack()
-file = "Clumps_Carlos/clumps/Chess_Knight_100_spheres.txt"
+file = "Clumps/clumps/Chess_Knight_100_spheres.txt"
 Knight = pack.SpherePack(read_x_y_z_r_intoList(file, Vector3.Zero, 0.12*unit)) # 6 cm
 sp.makeClumpCloud(corner1, corner2, [Knight], num=4, seed=5, periodic=False)
 sp.toSimulation(material='spheresMat')
 
 # Add Pawns
 sp = pack.SpherePack()
-file = "Clumps_Carlos/clumps/Chess_Pawn_100_spheres.txt"
+file = "Clumps/clumps/Chess_Pawn_100_spheres.txt"
 Pawn = pack.SpherePack(read_x_y_z_r_intoList(file, Vector3.Zero, 0.062*unit)) # 5 cm
 sp.makeClumpCloud(corner1, corner2, [Pawn], num=16, seed=8, periodic=False)
 sp.toSimulation(material='spheresMat')
 
-O.bodies.updateClumpProperties(discretization=40)
+O.bodies.updateClumpProperties(discretization=100)
 
 # Add Initial velocity
 Vel = Vel*s_new/r_new
@@ -139,6 +142,9 @@ for b in O.bodies:
 # Set time step
 O.stopAtTime = t_max/s_new 
 O.dt = table.dt/s_new
+steps = int(O.stopAtTime/O.dt)
+vis_steps = int(steps/samples)
+
 
 #------------------------------------------------------------------------------
 # Engines
@@ -152,11 +158,13 @@ O.engines=[
             [Law2_ScGeom_MindlinPhys_Mindlin(label='law', calcEnergy=True)]
         ),
         NewtonIntegrator(damping=0.0, gravity=[0,0,0], label='newton', kinSplit=True,
-            exactAsphericalRot=True, RotAlgorithm=table.integration_type)
+            exactAsphericalRot=True, RotAlgorithm=table.integration_type),
+        PyRunner(command='Energy_Error()', iterPeriod=vis_steps),
         ]
 
 #------------------------------------------------------------------------------
 # Initial energy
+O.step()
 O.step()
 E0 = utils.kineticEnergy() + O.engines[2].lawDispatcher.functors[0].normElastEnergy() 
 
@@ -167,17 +175,18 @@ if BATCH:
     O.wait()
 
 #------------------------------------------------------------------------------
-# Final energy error
-err = Energy_Error()
-
-#------------------------------------------------------------------------------
 
 if BATCH:
     # Save results
     fileE = "Data/"+table.integration_type+"_energy.csv"
+    if not os.path.exists(fileE):
+        with open(fileE, 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(['dt','mean_error','std_error'])
+
     with open(fileE, 'a') as f:
         writer = csv.writer(f)
-        row = [str(table.dt),str(err)]   
+        row = [str(table.dt), str(np.mean(Energy_Err)), str(np.std(Energy_Err))]   
         writer.writerow(row)
 else:
-    print("dt = ", table.dt, ", err = ", err)
+    print("dt = ", table.dt, ", err = ", np.mean(Energy_Err), " +- ", np.std(Energy_Err))
