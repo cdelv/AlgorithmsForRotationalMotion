@@ -25,9 +25,9 @@ integrationType='Carlos_2023'
 
 #------------------------------------------------------------------------------
 # New units for the simulation (to avoid numerical problems)
-E_new = 1e9    # new unit of pressure
-r_new = 1e-2   # new unit of lenght
-s_new = 1.9311703796025776e6 # new unit of time (Rayleigh timestep)^-1
+E_new = 1 #1e9    # new unit of pressure
+r_new = 1 #1e-2   # new unit of lenght
+s_new = 1 #1.9311703796025776e6 # new unit of time (Rayleigh timestep)^-1
 
 #------------------------------------------------------------------------------
 Energy_Err = []
@@ -138,6 +138,30 @@ for b in O.bodies:
         b.state.vel = Vel*vv          # m / s
         b.state.angVel = np.pi*vv   # rads / s
         b.state.angMom = (R*b.state.inertia.asDiagonal()*R.transpose())*b.state.angVel
+
+"""
+def save_sim():
+    with open('spheres.csv', 'w') as file:
+        writer = csv.writer(file)
+        writer.writerow(['x', 'y', 'z', 'rad'])
+        for b in O.bodies:
+            if isinstance(b.shape, Sphere):
+                row = [b.state.pos[0], b.state.pos[1], b.state.pos[2], b.shape.radius]
+                row = [str(x) for x in row]
+                writer.writerow(row)
+            
+save_sim()
+
+count = 0
+for b in O.bodies:
+    if isinstance(b.shape, Sphere):
+        count += 1
+
+print(count)
+
+exit()
+"""
+
 
 #------------------------------------------------------------------------------
 # Time parameters
