@@ -11,7 +11,7 @@ import numpy as np
 import csv
 import os
 
-readParamsFromTable(dt=1e-5, integration_type="Carlos_2023")
+readParamsFromTable(dt=1e-5, integration_type="delValle2023")
 from yade.params import table 
 
 #---------------------------------------------------------------------

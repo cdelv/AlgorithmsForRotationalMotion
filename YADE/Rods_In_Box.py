@@ -16,9 +16,9 @@ DT = 2.0
 samples = 500
 
 # Integration Method
-#integrationType='Fincham'
-integrationType='Omelyan98'
-integrationType='Carlos_2023'
+integrationType='Fincham1992'
+integrationType='Omelyan1998'
+integrationType='delValle2023'
 
 # Material
 matID=O.materials.append(FrictMat(young=1.0e9, poisson=0.1, density=2500.0, frictionAngle=0.0, label='spheresMat'))
@@ -44,6 +44,7 @@ sp.makeClumpCloud((0, 0, 0), (1, 1, 1),
 sp.toSimulation(material='spheresMat')
 
 # Data files
+"""
 fileE = "Data/"+integrationType+"_Energy_"+str(DT)+".csv"
 with open(fileE, 'w') as f:
     f.write('t,total,kinTrans,kinRot\n')
@@ -51,6 +52,7 @@ with open(fileE, 'w') as f:
 fileC = "Data/Clumps.csv"
 with open(fileC, 'w') as f:
     f.write('x,y,z,vx,vy,vz,wx,wy,wz,qw,q1,q2,q3\n')
+"""
 
 # Ensure that all particles have the same kinetic energy
 Vel = 6.0
@@ -73,11 +75,13 @@ for b in O.bodies:
         m = b.state.mass
         
         # Save data
+        """
         with open(fileC, 'a') as f:
             writer = csv.writer(f)
             data = [x[0], x[1], x[2], v[0], v[1], v[2], w[0], w[1], w[2], q[3], q[0], q[1], q[2]]   
             row = list(map(lambda t: ("%.16f" % t), data)) # 16 decimal places
             writer.writerow(row)
+        """
 
 # Set time step
 O.stopAtTime = 250.0
@@ -98,8 +102,8 @@ O.engines=[
             [Law2_ScGeom_MindlinPhys_Mindlin(label='law', calcEnergy=True)]
         ),
         NewtonIntegrator(damping=0.0, gravity=[0,0,0], label='newton', kinSplit=True,
-            exactAsphericalRot=True, RotAlgorithm=integrationType),
-        VTKRecorder(fileName='temp-', recorders=['all'], iterPeriod=500, dead=False),
+            exactAsphericalRot=True, rotAlgorithm=integrationType),
+        VTKRecorder(fileName='temp-', recorders=['all'], iterPeriod=500, dead=True),
         PyRunner(command='addPlotData()', iterPeriod=vis_steps)
 ]
 
@@ -113,11 +117,13 @@ def addPlotData():
     plot.addData(t=O.time, total=O.energy['kinTrans'] + O.energy['kinRot'] + normElastEnergy, **O.energy, Elastic=normElastEnergy)
 
     # Save data
+    """
     with open(fileE, 'a') as f:
         writer = csv.writer(f)
         data = [O.time, O.energy.total() + normElastEnergy, O.energy['kinTrans'], O.energy['kinRot']]   
         row = list(map(lambda t: ("%.16f" % t), data)) # 16 decimal places
         writer.writerow(row)
+    """
 
     
 #------------------------------------------------------------------------------
