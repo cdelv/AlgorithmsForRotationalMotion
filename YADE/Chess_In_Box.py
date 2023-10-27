@@ -12,7 +12,7 @@ import csv
 import os
 
 import numpy as np
-from stl import mesh
+#from stl import mesh
 
 #------------------------------------------------------------------------------
 t_max = 1.5          # s
