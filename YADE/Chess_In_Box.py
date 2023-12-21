@@ -28,7 +28,7 @@ frame = 0
 # Integration Method
 integrationType='Fincham1992'
 integrationType='Omelyan1998'
-integrationType='delValle2023'
+#integrationType='delValle2023'
 
 #------------------------------------------------------------------------------
 # New units for the simulation (to avoid numerical problems)

@@ -3,18 +3,20 @@
 # 2023 © Vasileios Angelidakis <vasileios.angelidakis@fau.de>
 # 2023 © Carlos Andrés del Valle <cdelv@unal.edu.co>
 # Institute for Multiscale Simulation
+# yade-batch -j 8 --job-threads=2 Chess_Batch_Params.txt YADE/Chess_In_Box_Batch.py
 #---------------------------------------------------------------------
 from yade import plot
 import random
-random.seed(12)
 import numpy as np
 import csv
 import os
+import time
 
-readParamsFromTable(dt=1e-5, integration_type="delValle2023")
+readParamsFromTable(seed=0, dt=4.85088067e-06, integration_type="Omelyan1998")
 from yade.params import table 
 
 #---------------------------------------------------------------------
+random.seed(table.seed)
 BATCH = True
 t_max = 1.5          # s
 Vel = 1.0            # m/s
@@ -31,7 +33,9 @@ Energy_Err = []
 def Energy_Error():
     Ef = utils.kineticEnergy() + O.engines[2].lawDispatcher.functors[0].normElastEnergy() 
     Energy_Err.append(100*abs(E0 - Ef)/E0)
-    return sum(Energy_Err)/len(Energy_Err)
+    a = np.mean(Energy_Err)
+    b = Energy_Err[-1]
+    return min(a, b)
 
 # Function to load the clumps
 def read_x_y_z_r_intoList(fileName,shift,scale):
@@ -148,7 +152,6 @@ vis_steps = int(steps/samples)
 
 #------------------------------------------------------------------------------
 # Engines
-
 O.engines=[
         ForceResetter(),
         InsertionSortCollider([Bo1_Sphere_Aabb(), Bo1_Facet_Aabb()]),
@@ -158,7 +161,7 @@ O.engines=[
             [Law2_ScGeom_MindlinPhys_Mindlin(label='law', calcEnergy=True)]
         ),
         NewtonIntegrator(damping=0.0, gravity=[0,0,0], label='newton', kinSplit=True,
-            exactAsphericalRot=True, RotAlgorithm=table.integration_type),
+            exactAsphericalRot=True, rotAlgorithm=table.integration_type, normalizeEvery=10),
         PyRunner(command='Energy_Error()', iterPeriod=vis_steps),
         ]
 
@@ -170,9 +173,12 @@ E0 = utils.kineticEnergy() + O.engines[2].lawDispatcher.functors[0].normElastEne
 
 #------------------------------------------------------------------------------
 # Run simulation
+start_time = time.time()
 O.run()
-if BATCH:
-    O.wait()
+O.wait()
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Simulation execution time: {elapsed_time} s")
 
 #------------------------------------------------------------------------------
 
@@ -182,11 +188,11 @@ if BATCH:
     if not os.path.exists(fileE):
         with open(fileE, 'w') as f:
             writer = csv.writer(f)
-            writer.writerow(['dt','mean_error','std_error'])
+            writer.writerow(['seed', 'dt', 'error'])
 
     with open(fileE, 'a') as f:
         writer = csv.writer(f)
-        row = [str(table.dt), str(np.mean(Energy_Err)), str(np.std(Energy_Err))]   
+        row = [str(table.seed), str(table.dt), Energy_Error()]   
         writer.writerow(row)
 else:
-    print("dt = ", table.dt, ", err = ", np.mean(Energy_Err), " +- ", np.std(Energy_Err))
+    print("seed =", table.seed ,", dt =", table.dt, ", err =", Energy_Error())
