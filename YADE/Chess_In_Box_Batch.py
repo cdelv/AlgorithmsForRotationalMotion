@@ -72,7 +72,7 @@ matID=O.materials.append(FrictMat(young=60e9/E_new, poisson=0.25, density=3200*(
 
 # Facet box
 corner1 = Vector3(0.0,0.0,0.0)
-corner2 = (0.25/r_new)*Vector3(1.0,1.0,1.0) # 25 x 25 x 25 cm box
+corner2 = (0.25/r_new)*Vector3(1.0,1.0,1.0) # 50 x 50 x 50 cm box
 id1 = O.bodies.append(geom.facetBox(0.5*(corner1 + corner2), corner2, material=O.materials['spheresMat']))
 
 #------------------------------------------------------------------------------
