@@ -18,7 +18,7 @@ year = {2024},
 issn = {0010-4655},
 doi = {https://doi.org/10.1016/j.cpc.2023.109077},
 url = {https://www.sciencedirect.com/science/article/pii/S0010465523004228},
-author = Carlos Andr\'es {del Valle} and Vasileios Angelidakis and Sudeshna Roy and Jos\'e Daniel Mu\~noz and Thorsten P\"oschel},
+author = {Carlos Andr\'es {del Valle} and Vasileios Angelidakis and Sudeshna Roy and Jos\'e Daniel Mu\~noz and Thorsten P\"oschel},
 }
 ```
 
